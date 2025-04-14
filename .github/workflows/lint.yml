@@ -1,0 +1,63 @@
+---
+name: Lint
+
+on:
+  - push
+  - pull_request
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: [8.4]
+
+    env:
+      NODE_ENV: development
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Use PHP ${{ matrix.php-version }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+        env: { fail-fast: true }
+
+      - name: Cache NPM packages
+        uses: actions/cache@v4
+        env: { cache-name: npm }
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-lint-${{ env.cache-name }}-
+            ${{ runner.os }}-lint-
+            ${{ runner.os }}-
+
+      - name: Cache Composer packages
+        uses: actions/cache@v3
+        env: { cache-name: composer }
+        with:
+          path: vendor
+          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-lint-${{ env.cache-name }}-
+            ${{ runner.os }}-lint-
+            ${{ runner.os }}-
+
+      - name: Install NPM dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Composer dependencies
+        run: composer install --ignore-platform-reqs
+
+      - name: Lint code
+        run: composer run-script lint
