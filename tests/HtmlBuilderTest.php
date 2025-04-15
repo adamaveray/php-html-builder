@@ -582,4 +582,108 @@ final class HtmlBuilderTest extends TestCase
       'parameters' => ['foo' => 'bar'],
     ];
   }
+
+  #[DataProvider('mapHtmlIdsDataProvider')]
+  public static function testMapHtmlIds(
+    string $expected,
+    string $html,
+    callable $transformer,
+    array $additionalAttributes = [],
+  ): void {
+    $htmlBuilder = self::makeHtmlBuilder();
+    $result = $htmlBuilder->mapHtmlIds($html, $transformer, $additionalAttributes);
+    self::assertEquals($expected, $result, 'The HTML should be processed correctly.');
+  }
+
+  public static function mapHtmlIdsDataProvider(): iterable
+  {
+    yield 'No IDs' => [
+      'expected' => <<<'HTML'
+      <p>Hello world.</p>
+      HTML
+      ,
+      'html' => <<<'HTML'
+      <p>Hello world.</p>
+      HTML
+      ,
+      'transformer' => static fn(string $value): never => self::fail('The transformer should not be called.'),
+    ];
+
+    yield 'No transformation' => [
+      'expected' => <<<'HTML'
+      <p id="test">Hello world.</p>
+      HTML
+      ,
+      'html' => <<<'HTML'
+      <p id="test">Hello world.</p>
+      HTML
+      ,
+      'transformer' => static fn(string $value): string => $value,
+    ];
+
+    yield 'Transformation' => [
+      'expected' => <<<'HTML'
+      <p id="new-test-value">Hello world.</p>
+      HTML
+      ,
+      'html' => <<<'HTML'
+      <p id="test">Hello world.</p>
+      HTML
+      ,
+      'transformer' => static fn(string $value): string => 'new-' . $value . '-value',
+    ];
+
+    yield 'Multiple attributes' => [
+      'expected' => <<<'HTML'
+      <div aria-labelledby="new-test-title-value" class="test-class">
+        <h1 id="new-test-title-value" hidden>Test title</h1>
+        <figure inert onclick="console.log('click');" aria-describedby="new-test-caption-value">
+          Test figure.
+        </figure>
+        <figcaption id="new-test-caption-value">Test caption.</figcaption>
+        <button data-target="test-title">Test button.</button>
+      </div>
+      HTML
+      ,
+      'html' => <<<'HTML'
+      <div aria-labelledby="test-title" class="test-class">
+        <h1 id="test-title" hidden>Test title</h1>
+        <figure inert onclick="console.log('click');" aria-describedby="test-caption">
+          Test figure.
+        </figure>
+        <figcaption id="test-caption">Test caption.</figcaption>
+        <button data-target="test-title">Test button.</button>
+      </div>
+      HTML
+      ,
+      'transformer' => static fn(string $value): string => 'new-' . $value . '-value',
+    ];
+
+    yield 'Custom attributes' => [
+      'expected' => <<<'HTML'
+      <div aria-labelledby="new-test-title-value">
+        <h1 id="new-test-title-value">Test title</h1>
+        <figure aria-describedby="new-test-caption-value">
+          Test figure.
+        </figure>
+        <figcaption id="new-test-caption-value">Test caption.</figcaption>
+        <button data-target="new-test-title-value">Test button.</button>
+      </div>
+      HTML
+      ,
+      'html' => <<<'HTML'
+      <div aria-labelledby="test-title">
+        <h1 id="test-title">Test title</h1>
+        <figure aria-describedby="test-caption">
+          Test figure.
+        </figure>
+        <figcaption id="test-caption">Test caption.</figcaption>
+        <button data-target="test-title">Test button.</button>
+      </div>
+      HTML
+      ,
+      'transformer' => static fn(string $value): string => 'new-' . $value . '-value',
+      'additionalAttributes' => ['data-target'],
+    ];
+  }
 }

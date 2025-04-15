@@ -40,6 +40,11 @@ final readonly class HtmlBuilder
     'worker',
   ];
 
+  /**
+   * HTML element attributes that contain or reference an element ID.
+   */
+  private const ID_ATTRIBUTES = ['id', 'for', 'aria-labelledby', 'aria-describedby'];
+
   public function __construct(private MimeTypeGuesserInterface $mimeTypesGuesser) {}
 
   /**
@@ -284,6 +289,37 @@ final readonly class HtmlBuilder
     }
     $dataUri .= \str_starts_with($mime, 'text/') ? ',' . \rawurlencode($data) : ';base64,' . \base64_encode($data);
     return $dataUri;
+  }
+
+  /**
+   * Applies a transformation function to ID and ID-referencing attributes within the given HTML string.
+   *
+   * Note this is currently a naïve implementation using regular expressions and so can cause invalid transformations.
+   *
+   * @param string $html A fragment of HTML to transform.
+   * @param callable(string $attributeValue, string $attributeName):string $transformer A callable to process the attribute value. The attribute’s value will be set to the returned string.
+   * @param list<string> $additionalAttributes Names of additional attributes to process.
+   * @see self::ID_ATTRIBUTES Attributes that will be processed by default.
+   *
+   * @todo Parse the HTML and apply transformations to the loaded DOM.
+   */
+  public function mapHtmlIds(string $html, callable $transformer, array $additionalAttributes = []): string
+  {
+    $attributePatterns = \array_map(
+      static fn(string $attributeName): string => \preg_quote($attributeName, '~'),
+      \array_merge(self::ID_ATTRIBUTES, $additionalAttributes),
+    );
+    $result = \preg_replace_callback(
+      '~\b(' . \implode('|', $attributePatterns) . ')=(["\'])(.*?)\\2~i',
+      static function (array $matches) use ($transformer): string {
+        [, $attributeName, $quote, $attributeValue] = $matches;
+        $attributeValue = $transformer($attributeValue, $attributeName);
+        return escape($attributeName) . '=' . $quote . escape($attributeValue) . $quote;
+      },
+      $html,
+    );
+    \assert(\is_string($result));
+    return $result;
   }
 
   private function inferMimeType(string $data): ?string
