@@ -9,7 +9,16 @@ namespace Averay\HtmlBuilder\Html;
  */
 function escape(string $value): string
 {
-  return \htmlspecialchars($value, \ENT_HTML5 | \ENT_QUOTES, 'UTF-8');
+  return \htmlspecialchars($value, \ENT_HTML5 | \ENT_QUOTES | \ENT_DISALLOWED, 'UTF-8');
+}
+
+/**
+ * @param string $value An escaped HTML string.
+ * @return string The raw representation of `$value`.
+ */
+function unescape(string $value): string
+{
+  return \html_entity_decode($value, \ENT_HTML5 | \ENT_QUOTES | \ENT_DISALLOWED, 'UTF-8');
 }
 
 /**

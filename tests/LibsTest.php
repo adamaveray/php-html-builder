@@ -14,20 +14,24 @@ use PHPUnit\Framework\TestCase;
 #[CoversFunction('\\Averay\\HtmlBuilder\\Html\\escapeJson')]
 final class LibsTest extends TestCase
 {
-  #[DataProvider('htmlEscapeDataProvider')]
-  public function testHtmlEscape(string $expected, string $value): void
+  #[DataProvider('htmlEscapeUnescapeDataProvider')]
+  public function testHtmlEscapeUnescape(string $expected, string $value): void
   {
-    self::assertEquals($expected, Html\escape($value), 'The value should be escaped correctly.');
+    $escaped = Html\escape($value);
+    self::assertEquals($expected, $escaped, 'The value should be escaped correctly.');
+
+    $unescaped = Html\unescape($escaped);
+    self::assertEquals($value, $unescaped, 'The value should be unescaped correctly.');
   }
 
-  public static function htmlEscapeDataProvider(): iterable
+  public static function htmlEscapeUnescapeDataProvider(): iterable
   {
-    yield 'Safe' => [
+    yield 'Plain' => [
       'expected' => 'Hello world.',
       'value' => 'Hello world.',
     ];
 
-    yield 'Unsafe' => [
+    yield 'HTML' => [
       'expected' => '&lt;p&gt;&apos;Hello&apos; &quot;world&quot;.&lt;/p&gt;',
       'value' => '<p>\'Hello\' "world".</p>',
     ];
