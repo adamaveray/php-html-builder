@@ -328,7 +328,9 @@ final readonly class HtmlBuilder
   {
     $tmp = \tempnam(\sys_get_temp_dir(), 'mime');
     if ($tmp === false) {
+      // @codeCoverageIgnoreStart
       throw new \RuntimeException('Failed creating temporary file.');
+      // @codeCoverageIgnoreEnd
     }
     \file_put_contents($tmp, $data);
     try {
