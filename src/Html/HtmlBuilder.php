@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Html;
 
+use League\Uri\BaseUri;
+use Psr\Http\Message\UriInterface;
 use Symfony\Component\Mime\MimeTypeGuesserInterface;
 
 final readonly class HtmlBuilder
@@ -227,6 +229,28 @@ final readonly class HtmlBuilder
       $formatted[] = \sprintf('%s %s', $url, $size);
     }
     return escape(\implode(', ', $formatted));
+  }
+
+  /**
+   * @param string|UriInterface $destinationUrl A URL that will be used in an anchor element's `href` attribute.
+   * @param string|UriInterface $originUrl The URL for the page the anchor will appear in.
+   * @param 'page'|'step'|'location'|'date'|'time'|true $value The ARIA value for the referenced item.
+   * @return string Appropriate HTML attributes for the destination URL if it matches the page URL, or an empty string if it is to a different location.
+   *
+   * @see BaseUri::isSameDocument The logic for determining whether the destination URL is the same as the origin URL.
+   * @see https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-current The generated ARIA attribute and possible values for $value.
+   */
+  public function buildCurrentUrlAttr(
+    string|UriInterface $destinationUrl,
+    string|UriInterface $originUrl,
+    string|true $value = 'page',
+  ): string {
+    if ($value === true) {
+      $value = 'true';
+    }
+    return BaseUri::from($originUrl)->isSameDocument($destinationUrl)
+      ? \sprintf('aria-current="%s"', escape($value))
+      : '';
   }
 
   /**

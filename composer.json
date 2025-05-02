@@ -36,6 +36,7 @@
   "require": {
     "php": ">=8.4",
     "fig/http-message-util": "^1.1",
+    "league/uri": "^7.5",
     "symfony/mime": "^7.2"
   },
   "require-dev": {

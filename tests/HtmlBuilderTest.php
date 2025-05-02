@@ -95,6 +95,14 @@ final class HtmlBuilderTest extends TestCase
     yield 'Non-associative attributes' => ['disabled inert', ['disabled', 'inert']];
   }
 
+  public function testBuildAttrsRejectsInvalidAttributeNames(): void
+  {
+    $htmlBuilder = self::makeHtmlBuilder();
+    $this->expectException(\InvalidArgumentException::class);
+    $this->expectExceptionMessageMatches('~^Invalid attribute name~');
+    $htmlBuilder->buildAttrs(['hello world']);
+  }
+
   #[DataProvider('buildClassesDataProvider')]
   public function testBuildClasses(string $expected, array $classes): void
   {
@@ -395,6 +403,53 @@ final class HtmlBuilderTest extends TestCase
         '<large.jpg>' => '<500px>',
         '<small.jpg>' => '<200px>',
       ],
+    ];
+  }
+
+  /**
+   * @param 'page'|'step'|'location'|'date'|'time'|true $value
+   */
+  #[DataProvider('buildCurrentPageLinkAttrDataProvider')]
+  public function testBuildCurrentPageLinkAttr(
+    string $expected,
+    string|UriInterface $destinationUrl,
+    string|UriInterface $originUrl,
+    string|bool $value = 'page',
+  ): void {
+    $htmlBuilder = self::makeHtmlBuilder();
+    self::assertEquals(
+      $expected,
+      $htmlBuilder->buildCurrentUrlAttr($destinationUrl, $originUrl, $value),
+      'The link attribute should be built correctly.',
+    );
+  }
+
+  public static function buildCurrentPageLinkAttrDataProvider(): iterable
+  {
+    yield 'Current page' => [
+      'expected' => 'aria-current="page"',
+      'destinationUrl' => '/',
+      'originUrl' => '/',
+    ];
+
+    yield 'Different page' => [
+      'expected' => '',
+      'destinationUrl' => '/other/',
+      'originUrl' => '/',
+    ];
+
+    yield 'Alternate string value' => [
+      'expected' => 'aria-current="step"',
+      'destinationUrl' => '/',
+      'originUrl' => '/',
+      'value' => 'step',
+    ];
+
+    yield 'Alternate boolean value' => [
+      'expected' => 'aria-current="true"',
+      'destinationUrl' => '/',
+      'originUrl' => '/',
+      'value' => true,
     ];
   }
 
