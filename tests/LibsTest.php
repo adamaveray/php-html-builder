@@ -11,6 +11,7 @@ use PHPUnit\Framework\TestCase;
 
 #[CoversFunction('\\Averay\\HtmlBuilder\\Css\\escapeString')]
 #[CoversFunction('\\Averay\\HtmlBuilder\\Html\\escape')]
+#[CoversFunction('\\Averay\\HtmlBuilder\\Html\\unescape')]
 #[CoversFunction('\\Averay\\HtmlBuilder\\Html\\escapeJson')]
 final class LibsTest extends TestCase
 {

@@ -6,11 +6,13 @@ namespace Averay\HtmlBuilder\Tests;
 use Averay\HtmlBuilder\Html\HtmlBuilder;
 use Averay\HtmlBuilder\Tests\Lib\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Mime\MimeTypeGuesserInterface;
 use Symfony\Component\Mime\MimeTypes;
 
 #[CoversClass(HtmlBuilder::class)]
+#[CoversFunction('Averay\HtmlBuilder\Html\escape')]
 final class HtmlBuilderTest extends TestCase
 {
   private static function makeHtmlBuilder(?MimeTypeGuesserInterface $mimeTypes = null): HtmlBuilder

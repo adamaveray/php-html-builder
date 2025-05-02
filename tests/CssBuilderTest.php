@@ -8,9 +8,11 @@ use Averay\HtmlBuilder\Components\Media\HasMediaFormats;
 use Averay\HtmlBuilder\Css\CssBuilder;
 use Averay\HtmlBuilder\Tests\Lib\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
 
 #[CoversClass(CssBuilder::class)]
+#[CoversFunction('Averay\HtmlBuilder\Css\escapeString')]
 final class CssBuilderTest extends TestCase
 {
   private static function makeCssBuilder(): CssBuilder
