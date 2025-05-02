@@ -91,6 +91,8 @@ final class HtmlBuilderTest extends TestCase
         },
       ],
     ];
+
+    yield 'Non-associative attributes' => ['disabled inert', ['disabled', 'inert']];
   }
 
   #[DataProvider('buildClassesDataProvider')]
