@@ -338,15 +338,12 @@ final readonly class HtmlBuilder
     }
   }
 
+  /**
+   * @param scalar|null|\Stringable $value
+   */
   private function formatAttr(string $name, mixed $value): ?string
   {
     $withName = static fn(mixed $value): string => \sprintf('%s="%s"', $name, escape((string) $value));
-
-    if (!\is_scalar($value) && $value !== null && !($value instanceof \Stringable)) {
-      throw new \InvalidArgumentException(
-        \sprintf('Attribute %s must be a scalar or null, received "%s".', $name, \get_debug_type($value)),
-      );
-    }
 
     switch (true) {
       case \str_starts_with($name, 'aria-'):
