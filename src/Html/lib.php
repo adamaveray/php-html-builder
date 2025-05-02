@@ -22,7 +22,7 @@ function unescape(string $value): string
 }
 
 /**
- * @param string $value A PHP value.
+ * @param mixed $value A PHP value.
  * @return string The safe JavaScript representation of `$value` for use in an inline JavaScript script within a HTML document.
  */
 function escapeJson(mixed $value, int $flags = \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE): string
