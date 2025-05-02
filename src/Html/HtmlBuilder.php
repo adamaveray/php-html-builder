@@ -56,6 +56,8 @@ final readonly class HtmlBuilder
    *
    * Multiple attribute arrays can be provided which will be merged, with duplicate values intelligently merged (either combined or overwritten depending on the attribute).
    *
+   * For simple attributes the attribute name alone can be specified without a corresponding value, i.e. `["attribute-name"]` is equivalent to `["attribute-name" => true]`.
+   *
    * @param array<array-key, \Stringable|scalar|null> ...$attrs
    * @return string Formatted HTML attributes safe for use in a HTML document.
    */
