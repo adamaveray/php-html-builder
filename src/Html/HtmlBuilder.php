@@ -387,13 +387,21 @@ final readonly class HtmlBuilder
    */
   private static function parseHtmlTag(string $tag): array
   {
-    if (!\preg_match('~^<([\w-]+)(?:\s.+)?>$~', $tag, $matches)) {
-      throw new \InvalidArgumentException('Invalid tag.');
+    if (\preg_match('~^<([\w-]+)(?:\s.+)?>$~', $tag, $matches)) {
+      // HTML tag shorthand provided
+      /** @var array{ string, string } $matches */
+      $tagOpen = $tag;
+      $tagClose = \sprintf('</%s>', $matches[1]);
+    } else {
+      // Assume tag name
+      $tagName = escape($tag);
+      $tagOpen = \sprintf('<%s>', $tagName);
+      $tagClose = \sprintf('</%s>', $tagName);
     }
-    /** @var array{ string, string } $matches */
+
     return [
-      'open' => $tag,
-      'close' => \sprintf('</%s>', $matches[1]),
+      'open' => $tagOpen,
+      'close' => $tagClose,
     ];
   }
 }

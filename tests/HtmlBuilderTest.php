@@ -458,6 +458,12 @@ final class HtmlBuilderTest extends TestCase
       'string' => '<Hello world.>',
       'wrappingTag' => '<p class="test">',
     ];
+
+    yield 'Shorthand tag name' => [
+      'expected' => '<p>Hello world.</p>',
+      'string' => 'Hello world.',
+      'wrappingTag' => 'p',
+    ];
   }
 
   #[DataProvider('wrapWordsDataProvider')]
@@ -524,6 +530,15 @@ final class HtmlBuilderTest extends TestCase
       ,
       'string' => '<Hello world.>',
       'wrappingTag' => '<span>',
+    ];
+
+    yield 'Shorthand tag name' => [
+      'expected' => <<<'HTML'
+      <span>Hello</span> <span>world.</span>
+      HTML
+      ,
+      'string' => 'Hello world.',
+      'wrappingTag' => 'span',
     ];
   }
 
