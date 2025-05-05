@@ -12,7 +12,7 @@ use PHPUnit\Framework\TestCase;
 #[CoversFunction('\\Averay\\HtmlBuilder\\Css\\escapeString')]
 #[CoversFunction('\\Averay\\HtmlBuilder\\Html\\escape')]
 #[CoversFunction('\\Averay\\HtmlBuilder\\Html\\unescape')]
-#[CoversFunction('\\Averay\\HtmlBuilder\\Html\\escapeJson')]
+#[CoversFunction('\\Averay\\HtmlBuilder\\Html\\escapeJsValue')]
 final class LibsTest extends TestCase
 {
   #[DataProvider('htmlEscapeUnescapeDataProvider')]
@@ -38,33 +38,35 @@ final class LibsTest extends TestCase
     ];
   }
 
-  #[DataProvider('htmlEscapeJsonDataProvider')]
-  public function testHtmlEscapeJson(string $expected, mixed $value, int $flags = 0): void
+  #[DataProvider('htmlEscapeJsValueDataProvider')]
+  public function testHtmlEscapeJsValue(string $expected, mixed $value, int $flags = 0): void
   {
-    self::assertEquals($expected, Html\escapeJson($value, $flags), 'The JSON value should be escaped correctly.');
+    self::assertEquals($expected, Html\escapeJsValue($value, $flags), 'The JS value should be escaped correctly.');
   }
 
-  public static function htmlEscapeJsonDataProvider(): iterable
+  public static function htmlEscapeJsValueDataProvider(): iterable
   {
-    yield 'String' => ['&quot;Hello world.&quot;', 'Hello world.'];
+    yield 'String' => ['"Hello world."', 'Hello world.'];
     yield 'Integer' => ['123', 123];
     yield 'Float' => ['123.45', 123.45];
     yield 'Boolean' => ['true', true];
-    yield 'List' => ['[&quot;a&quot;,&quot;b&quot;,&quot;c&quot;]', ['a', 'b', 'c']];
-    yield 'Associative array' => ['{&quot;a&quot;:1,&quot;b&quot;:2,&quot;c&quot;:3}', ['a' => 1, 'b' => 2, 'c' => 3]];
+    yield 'List' => ['["a","b","c"]', ['a', 'b', 'c']];
+    yield 'Associative array' => ['{"a":1,"b":2,"c":3}', ['a' => 1, 'b' => 2, 'c' => 3]];
 
     yield 'Custom flags' => [
       <<<'TXT'
       {
-          &quot;a&quot;: 1,
-          &quot;b&quot;: 2,
-          &quot;c&quot;: 3
+          "a": 1,
+          "b": 2,
+          "c": 3
       }
       TXT
       ,
       ['a' => 1, 'b' => 2, 'c' => 3],
       \JSON_PRETTY_PRINT,
     ];
+
+    yield 'Unsafe string' => ['"&lt;Hello world.&gt;"', '<Hello world.>'];
   }
 
   #[DataProvider('cssEscapeStringDataProvider')]
