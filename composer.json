@@ -42,6 +42,6 @@
   "require-dev": {
     "phpunit/phpunit": "^12.1",
     "roave/security-advisories": "dev-latest",
-    "vimeo/psalm": "^6.5"
+    "vimeo/psalm": "^6.10"
   }
 }
