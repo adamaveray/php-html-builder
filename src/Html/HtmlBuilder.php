@@ -313,7 +313,10 @@ final readonly class HtmlBuilder
     foreach ($parameters as $key => $value) {
       $dataUri .= \sprintf(';%s=%s', $key, \rawurlencode($value));
     }
-    $dataUri .= \str_starts_with($mime, 'text/') ? ',' . \rawurlencode($data) : ';base64,' . \base64_encode($data);
+    $dataUri .=
+      \str_starts_with($mime, 'text/') || \str_ends_with($mime, '+xml')
+        ? ',' . \rawurlencode($data)
+        : ';base64,' . \base64_encode($data);
     return $dataUri;
   }
 
