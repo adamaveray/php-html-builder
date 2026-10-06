@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Tests;
@@ -10,9 +11,13 @@ use Averay\HtmlBuilder\Tests\Lib\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
 
+/**
+ * @internal
+ */
 #[CoversClass(CssBuilder::class)]
-#[CoversFunction('Averay\HtmlBuilder\Css\escapeString')]
+#[CoversFunction('Averay\\HtmlBuilder\\Css\\escapeString')]
 final class CssBuilderTest extends TestCase
 {
   private static function makeCssBuilder(): CssBuilder
@@ -20,44 +25,51 @@ final class CssBuilderTest extends TestCase
     return new CssBuilder();
   }
 
+  #[Test]
   #[DataProvider('buildUrlDataProvider')]
-  public function testBuildUrl(string $expected, string $url): void
+  public function buildUrl(string $expected, string $url): void
   {
     $cssBuilder = self::makeCssBuilder();
     self::assertEquals($expected, $cssBuilder->buildUrl($url), 'The URL statement should be built correctly.');
   }
 
+  /**
+   * @return iterable<string, array{ string, string }>
+   */
   public static function buildUrlDataProvider(): iterable
   {
     yield 'No quotes' => [
       <<<'TXT'
-      url('hello-world.jpg')
-      TXT
-      ,
+        url('hello-world.jpg')
+        TXT,
       <<<'TXT'
-      hello-world.jpg
-      TXT
-    ,
+        hello-world.jpg
+        TXT,
     ];
 
     yield 'With quotes' => [
       <<<'TXT'
-      url('hello \'world\'.jpg')
-      TXT
-      ,
+        url('hello \'world\'.jpg')
+        TXT,
       <<<'TXT'
-      hello 'world'.jpg
-      TXT
-    ,
+        hello 'world'.jpg
+        TXT,
     ];
   }
 
+  /**
+   * @param string|list<string> $values
+   */
+  #[Test]
   #[DataProvider('buildPropertyDataProvider')]
-  public function testBuildProperty(string $expected, string $name, string|array $values): void
+  public function buildProperty(string $expected, string $name, string|array $values): void
   {
     self::assertEquals($expected, self::makeCssBuilder()->buildProperty($name, $values));
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, name: string, values: string|list<string> }>
+   */
   public static function buildPropertyDataProvider(): iterable
   {
     yield 'Single value' => [
@@ -73,8 +85,12 @@ final class CssBuilderTest extends TestCase
     ];
   }
 
+  /**
+   * @param array<string, string|list<string>> $properties
+   */
+  #[Test]
   #[DataProvider('buildPropertiesDataProvider')]
-  public function testBuildProperties(string $expected, array $properties): void
+  public function buildProperties(string $expected, array $properties): void
   {
     $cssBuilder = self::makeCssBuilder();
     self::assertEquals(
@@ -83,6 +99,10 @@ final class CssBuilderTest extends TestCase
       'The properties should be built correctly.',
     );
   }
+
+  /**
+   * @return iterable<string, array{ string, array<string, string|list<string>> }>
+   */
   public static function buildPropertiesDataProvider(): iterable
   {
     yield 'Single property, single value' => ['hello:world', ['hello' => 'world']];
@@ -115,23 +135,29 @@ final class CssBuilderTest extends TestCase
     ];
   }
 
+  /**
+   * @param iterable<string, string> $entries
+   */
+  #[Test]
   #[DataProvider('buildImageSetDirectDataProvider')]
-  public function testBuildImageSetDirect(string $expected, iterable $entries): void
+  public function buildImageSetDirect(string $expected, iterable $entries): void
   {
     $cssBuilder = self::makeCssBuilder();
     self::assertEqualsIgnoringWhitespace($expected, $cssBuilder->buildImageSet($entries));
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, entries: array<string, string> }>
+   */
   public static function buildImageSetDirectDataProvider(): iterable
   {
     yield 'Values' => [
       'expected' => <<<'TXT'
-      image-set(
-        url('image@2x.jpg') 2x,
-        url('image.jpg') 1x
-      )
-      TXT
-      ,
+        image-set(
+          url('image@2x.jpg') 2x,
+          url('image.jpg') 1x
+        )
+        TXT,
       'entries' => [
         'image@2x.jpg' => '2x',
         'image.jpg' => '1x',
@@ -139,30 +165,41 @@ final class CssBuilderTest extends TestCase
     ];
   }
 
+  /**
+   * @param \Closure(): (HasMediaFormats|HasMediaDensities) $objectBuilder
+   */
+  #[Test]
   #[DataProvider('buildImageSetObjectDataProvider')]
-  public function testBuildImageSetObject(string $expected, \Closure $objectBuilder, ?string $format = null): void
+  public function buildImageSetObject(string $expected, \Closure $objectBuilder, ?string $format = null): void
   {
     $cssBuilder = self::makeCssBuilder();
     $object = $objectBuilder->call($this);
+    \assert(
+      $object instanceof HasMediaFormats || $object instanceof HasMediaDensities,
+      'The built object must be valid.',
+    );
     self::assertEqualsIgnoringWhitespace($expected, $cssBuilder->buildImageSet($object, $format));
   }
 
+  /**
+   * @return iterable<string, array{
+   *   expected: string,
+   *   objectBuilder: \Closure(): (HasMediaFormats|HasMediaDensities),
+   *   format?: string,
+   * }>
+   */
   public static function buildImageSetObjectDataProvider(): iterable
   {
     yield 'Formats' => [
       'expected' => <<<'TXT'
-      image-set(
-        url('image.jpg') type('image/jpeg'),
-        url('image.webp') type('image/webp')
-      )
-      TXT
-      ,
+        image-set(
+          url('image.jpg') type('image/jpeg'),
+          url('image.webp') type('image/webp')
+        )
+        TXT,
       'objectBuilder' => function (): HasMediaFormats {
         $mock = $this->createMock(HasMediaFormats::class);
-        $mock
-          ->expects($this->once())
-          ->method('getImageFormats')
-          ->willReturn(['image/jpeg', 'image/webp']);
+        $mock->expects($this->once())->method('getImageFormats')->willReturn(['image/jpeg', 'image/webp']);
         $this->expectMultipleInvocations($mock, 'getUrlForFormat', [
           ['parameters' => ['image/jpeg'], 'return' => 'image.jpg'],
           ['parameters' => ['image/webp'], 'return' => 'image.webp'],
@@ -173,20 +210,16 @@ final class CssBuilderTest extends TestCase
 
     yield 'Densities with all formats' => [
       'expected' => <<<'TXT'
-      image-set(
-        url('image.jpg') type('image/jpeg') 1x,
-        url('image@2x.jpg') type('image/jpeg') 2x,
-        url('image.webp') type('image/webp') 1x,
-        url('image@2x.webp') type('image/webp') 2x
-      )
-      TXT
-      ,
+        image-set(
+          url('image.jpg') type('image/jpeg') 1x,
+          url('image@2x.jpg') type('image/jpeg') 2x,
+          url('image.webp') type('image/webp') 1x,
+          url('image@2x.webp') type('image/webp') 2x
+        )
+        TXT,
       'objectBuilder' => function (): HasMediaDensities {
         $mock = $this->createMock(HasMediaDensities::class);
-        $mock
-          ->expects($this->once())
-          ->method('getImageFormats')
-          ->willReturn(['image/jpeg', 'image/webp']);
+        $mock->expects($this->once())->method('getImageFormats')->willReturn(['image/jpeg', 'image/webp']);
         $this->expectMultipleInvocations($mock, 'getDensitiesForFormat', [
           [
             'parameters' => ['image/jpeg'],
@@ -203,12 +236,11 @@ final class CssBuilderTest extends TestCase
 
     yield 'Densities with single format' => [
       'expected' => <<<'TXT'
-      image-set(
-        url('image.jpg') 1x,
-        url('image@2x.jpg') 2x
-      )
-      TXT
-      ,
+        image-set(
+          url('image.jpg') 1x,
+          url('image@2x.jpg') 2x
+        )
+        TXT,
       'objectBuilder' => function (): HasMediaDensities {
         $mock = $this->createMock(HasMediaDensities::class);
         $mock->expects($this->never())->method('getImageFormats');
@@ -223,21 +255,24 @@ final class CssBuilderTest extends TestCase
     ];
   }
 
-  public function testBuildImageSetDisallowsEmptyEntriesArray(): void
+  #[Test]
+  public function buildImageSetDisallowsEmptyEntriesArray(): void
   {
     $cssBuilder = self::makeCssBuilder();
     $this->expectException(\InvalidArgumentException::class);
     $cssBuilder->buildImageSet([]);
   }
 
-  public function testBuildImageSetDisallowsFormatWithEntriesArray(): void
+  #[Test]
+  public function buildImageSetDisallowsFormatWithEntriesArray(): void
   {
     $cssBuilder = self::makeCssBuilder();
     $this->expectException(\BadMethodCallException::class);
     $cssBuilder->buildImageSet(['image.jpg' => '1x'], 'test');
   }
 
-  public function testBuildImageSetDisallowsFormatWithMediaFormats(): void
+  #[Test]
+  public function buildImageSetDisallowsFormatWithMediaFormats(): void
   {
     $cssBuilder = self::makeCssBuilder();
 

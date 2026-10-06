@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Html;
@@ -8,12 +9,19 @@ use League\Uri\Contracts\UriException;
 use Psr\Http\Message\UriInterface;
 use Symfony\Component\Mime\MimeTypeGuesserInterface;
 
+/**
+ * @psalm-type FullResource = array{
+ *   url: string,
+ *   integrity?: string,
+ *   crossorigin?: string,
+ * }
+ */
 final readonly class HtmlBuilder
 {
   /**
    * @see https://www.w3.org/TR/2011/WD-html5-20110525/syntax.html#attributes-0
    */
-  private const INVALID_ATTR_NAME_CHARS = [
+  private const array INVALID_ATTR_NAME_CHARS = [
     "\u{0020}", // SPACE
     "\u{0009}", // CHARACTER TABULATION (tab)
     "\u{000A}", // LINE FEED (LF)
@@ -28,7 +36,7 @@ final readonly class HtmlBuilder
     "\u{003C}", // LESS-THAN SIGN (<) (Technically allowed but causes issues with some parsers.)
   ];
 
-  private const PRELOAD_TYPES = [
+  private const array PRELOAD_TYPES = [
     'audio',
     'document',
     'embed',
@@ -46,9 +54,11 @@ final readonly class HtmlBuilder
   /**
    * HTML element attributes that contain or reference an element ID.
    */
-  private const ID_ATTRIBUTES = ['id', 'for', 'aria-labelledby', 'aria-describedby'];
+  private const array ID_ATTRIBUTES = ['id', 'for', 'aria-labelledby', 'aria-describedby'];
 
-  public function __construct(private MimeTypeGuesserInterface $mimeTypesGuesser) {}
+  public function __construct(
+    private MimeTypeGuesserInterface $mimeTypesGuesser,
+  ) {}
 
   /**
    * Formats a collection of attributes for HTML.
@@ -62,6 +72,7 @@ final readonly class HtmlBuilder
    * For simple attributes the attribute name alone can be specified without a corresponding value, i.e. `["attribute-name"]` is equivalent to `["attribute-name" => true]`.
    *
    * @param array<array-key, \Stringable|scalar|null> ...$attrs
+   *
    * @return string Formatted HTML attributes safe for use in a HTML document.
    */
   public function buildAttrs(array ...$attrs): string
@@ -100,22 +111,26 @@ final readonly class HtmlBuilder
         $pairs[] = $formattedValue;
       }
     }
-    return implode(' ', $pairs);
+    return \implode(' ', $pairs);
   }
 
   /**
    * @param array<string, bool> $classes Classes
+   *
    * @return string A HTML-safe class list.
    */
   public function buildClasses(array $classes): string
   {
     $classes = \array_filter($classes);
-    return escape(implode(' ', \array_keys($classes)));
+    return \array_keys($classes)
+      |> (/** @param list<string> $classNames */ static fn(array $classNames): string => \implode(' ', $classNames))
+      |> escape(...);
   }
 
   /**
    * @param string $classList A space-separated HTML element class list.
    * @param string ...$additionalClasses Additional class names to append to the class list.
+   *
    * @return string The initial class list with the additional classes appended.
    */
   public function addClasses(string $classList, string ...$additionalClasses): string
@@ -135,6 +150,7 @@ final readonly class HtmlBuilder
    * @param string|null $media A conditional media query.
    * @param string|null $integrity The subresource integrity hash for the stylesheet.
    * @param "anonymous"|"use-credentials"|null $crossorigin
+   *
    * @return string HTML to load the stylesheet.
    */
   public function buildStylesheet(
@@ -159,6 +175,7 @@ final readonly class HtmlBuilder
    * @param bool $async Whether to load the script asynchronously.
    * @param string|null $integrity The subresource integrity hash for the script.
    * @param "anonymous"|"use-credentials"|null $crossorigin
+   *
    * @return string HTML to load the script.
    */
   public function buildScript(
@@ -179,22 +196,17 @@ final readonly class HtmlBuilder
   }
 
   /**
-   * @psalm-type FullResource = array{
-   *   url: string,
-   *   integrity?: string,
-   *   crossorigin?: string,
-   * }
    * @param array<value-of<self::PRELOAD_TYPES>, string|list<string|FullResource>> $preloads A number of resource types mapped to one or more URLs to preload.
    * @param list<string> $preconnectHosts A number of hosts (including protocols) to preconnect to.
+   *
    * @return string HTML to preload & preconnect to the provided destinations.
    */
   public function buildPreloadLinks(array $preloads, array $preconnectHosts = []): string
   {
     $html = '';
     foreach ($preloads as $type => $entries) {
-      /** @psalm-suppress DocblockTypeContradiction Manually validating. */
       if (!\in_array($type, self::PRELOAD_TYPES, true)) {
-        /** @psalm-suppress NoValue Manually validating. */
+        // @mago-expect analysis:no-value -- Runtime enforcement of static-analysis-enforced types.
         throw new \OutOfBoundsException(\sprintf('Invalid preload type "%s".', $type));
       }
       foreach ((array) $entries as $entry) {
@@ -202,15 +214,15 @@ final readonly class HtmlBuilder
           $entry = ['url' => $entry];
         }
         $html .=
-          '<link ' .
-          $this->buildAttrs([
+          '<link '
+          . $this->buildAttrs([
             'rel' => 'preload',
             'href' => $entry['url'],
             'as' => $type,
             'integrity' => $entry['integrity'] ?? null,
             'crossorigin' => $entry['crossorigin'] ?? null,
-          ]) .
-          '/>';
+          ])
+          . '/>';
       }
     }
     foreach ($preconnectHosts as $preconnectHost) {
@@ -221,6 +233,7 @@ final readonly class HtmlBuilder
 
   /**
    * @param array<string, string> $entries An array with URLs as keys, each mapped to a corresponding `srcset`-compatible size (e.g. a pixel amount or density).
+   *
    * @see https://developer.mozilla.org/en-US/docs/Web/HTML/Responsive_images
    */
   public function buildSrcSet(array $entries): string
@@ -236,6 +249,7 @@ final readonly class HtmlBuilder
    * @param string|UriInterface $destinationUrl A URL that will be used in an anchor element's `href` attribute.
    * @param string|UriInterface $originUrl The URL for the page the anchor will appear in.
    * @param 'page'|'step'|'location'|'date'|'time'|true $value The ARIA value for the referenced item.
+   *
    * @return string Appropriate HTML attributes for the destination URL if it matches the page URL, or an empty string if it is to a different location or either URL is invalid.
    *
    * @see BaseUri::isSameDocument The logic for determining whether the destination URL is the same as the origin URL.
@@ -251,7 +265,7 @@ final readonly class HtmlBuilder
     }
 
     try {
-      $isSameDocument = BaseUri::from($originUrl)->isSameDocument($destinationUrl);
+      $isSameDocument = BaseUri::from((string) $originUrl)->isSameDocument((string) $destinationUrl);
     } catch (UriException) {
       // Assume invalid/untrustworthy URLs are not the same document
       return '';
@@ -265,6 +279,7 @@ final readonly class HtmlBuilder
    *
    * @param string $string A plain text string.
    * @param string $wrappingTag The opening tag of the HTML element to wrap each paragraph with (e.g. `<p class="example">`).
+   *
    * @return string The HTML representation of the given string with paragraphs wrapped.
    */
   public function wrapParagraphs(string $string, string $wrappingTag = '<p>'): string
@@ -272,37 +287,38 @@ final readonly class HtmlBuilder
     ['open' => $tagOpen, 'close' => $tagClose] = self::parseHtmlTag($wrappingTag);
 
     // Split into paragraphs
-    $paragraphs = \preg_split('~\R{2,}~', \trim($string));
-    \assert(\is_array($paragraphs));
+    $paragraphs = \preg_split('~\\R{2,}~', \trim($string));
+    \assert(\is_array($paragraphs), 'The string must split into an array.');
     // Trim surrounding & inter-line whitespace
-    $paragraphs = \array_map(static function (string $paragraph): string {
-      $result = \preg_replace('~^\s*(.*?)\s*$~m', '$1', $paragraph);
-      \assert(\is_string($result));
-      return $result;
-    }, $paragraphs);
+    $paragraphs = \array_map(
+      static fn(string $paragraph): string => (
+        \preg_replace('~^\\s*(.*?)\\s*$~m', '$1', $paragraph) ?? throw new \RuntimeException(
+          'Failed processing string.',
+        )
+      ),
+      $paragraphs,
+    );
     // Remove empty paragraphs
     $paragraphs = \array_filter($paragraphs, static fn(string $paragraph): bool => $paragraph !== '');
 
-    return \implode(
-      '',
-      \array_map(static fn(string $paragraph): string => $tagOpen . escape($paragraph) . $tagClose, $paragraphs),
-    );
+    return \implode('', \array_map(
+      static fn(string $paragraph): string => $tagOpen . escape($paragraph) . $tagClose,
+      $paragraphs,
+    ));
   }
 
   /**
    * Wraps each word in a given string with a specified HTML tag.
-   *
-   * @param string $string
-   * @param string $wrappingTag
    */
   public function wrapWords(string $string, string $wrappingTag): string
   {
     ['open' => $tagOpen, 'close' => $tagClose] = self::parseHtmlTag($wrappingTag);
 
     $result = \preg_replace_callback(
-      '~(\S+)~',
+      '~(\\S+)~',
+      /** @param array<array-key, string> $matches */
       static function (array $matches) use ($tagOpen, $tagClose): string {
-        \assert(isset($matches[1]));
+        \assert(isset($matches[1]), 'The regex contains a match.');
         return $tagOpen . escape($matches[1]) . $tagClose;
       },
       $string,
@@ -320,10 +336,9 @@ final readonly class HtmlBuilder
     foreach ($parameters as $key => $value) {
       $dataUri .= \sprintf(';%s=%s', $key, \rawurlencode($value));
     }
-    $dataUri .=
-      \str_starts_with($mime, 'text/') || \str_ends_with($mime, '+xml')
-        ? ',' . \rawurlencode($data)
-        : ';base64,' . \base64_encode($data);
+    $dataUri .= \str_starts_with($mime, 'text/') || \str_ends_with($mime, '+xml')
+      ? ',' . \rawurlencode($data)
+      : ';base64,' . \base64_encode($data);
     return $dataUri;
   }
 
@@ -335,47 +350,53 @@ final readonly class HtmlBuilder
    * @param string $html A fragment of HTML to transform.
    * @param callable(string $attributeValue, string $attributeName):string $transformer A callable to process the attribute value. The attribute’s value will be set to the returned string.
    * @param list<string> $additionalAttributes Names of additional attributes to process.
+   *
    * @see self::ID_ATTRIBUTES Attributes that will be processed by default.
    *
    * @todo Parse the HTML and apply transformations to the loaded DOM.
    */
   public function mapHtmlIds(string $html, callable $transformer, array $additionalAttributes = []): string
   {
-    $attributePatterns = \array_map(
-      static fn(string $attributeName): string => \preg_quote($attributeName, '~'),
-      \array_merge(self::ID_ATTRIBUTES, $additionalAttributes),
-    );
+    $attributePatterns = \array_map(static fn(string $attributeName): string => \preg_quote(
+      $attributeName,
+      '~',
+    ), [...self::ID_ATTRIBUTES, ...$additionalAttributes]);
     $result = \preg_replace_callback(
-      '~\b(' . \implode('|', $attributePatterns) . ')=(["\'])(.*?)\\2~i',
+      '~\\b(?<name>' . \implode('|', $attributePatterns) . ')=(?<quote>["\'])(?<value>.*?)\\2~i',
+      /** @param array<array-key, string> $matches */
       static function (array $matches) use ($transformer): string {
-        [, $attributeName, $quote, $attributeValue] = $matches;
+        \assert(isset($matches['name'], $matches['quote'], $matches['value']), 'The regex matches must be present.');
+        ['name' => $attributeName, 'quote' => $quote, 'value' => $attributeValue] = $matches;
         $attributeValue = $transformer($attributeValue, $attributeName);
         return escape($attributeName) . '=' . $quote . escape($attributeValue) . $quote;
       },
       $html,
     );
-    \assert(\is_string($result));
-    return $result;
+    return $result ?? throw new \RuntimeException('Failed processing string.');
   }
 
   private function inferMimeType(string $data): ?string
   {
-    $tmp = \tempnam(\sys_get_temp_dir(), 'mime');
-    if ($tmp === false) {
+    $temporaryPath = \tempnam(\sys_get_temp_dir(), 'mime');
+    if ($temporaryPath === false) {
       // @codeCoverageIgnoreStart
       throw new \RuntimeException('Failed creating temporary file.');
+
       // @codeCoverageIgnoreEnd
     }
-    \file_put_contents($tmp, $data);
+    \file_put_contents($temporaryPath, $data);
     try {
-      return $this->mimeTypesGuesser->guessMimeType($tmp);
+      return $this->mimeTypesGuesser->guessMimeType($temporaryPath);
     } finally {
-      @unlink($tmp);
+      $didUnlink = \unlink($temporaryPath);
+      if (!$didUnlink) {
+        \error_log(\sprintf('Failed unlinking temporary MIME type inference file "%s".', $temporaryPath));
+      }
     }
   }
 
   /**
-   * @param scalar|null|\Stringable $value
+   * @param scalar|\Stringable|null $value
    */
   private function formatAttr(string $name, mixed $value): ?string
   {
@@ -384,13 +405,11 @@ final readonly class HtmlBuilder
     switch (true) {
       case \str_starts_with($name, 'aria-'):
         // ARIA attribute
-        return $withName(
-          match ($value) {
-            true => 'true',
-            false => 'false',
-            default => $value,
-          },
-        );
+        return $withName(match ($value) {
+          true => 'true',
+          false => 'false',
+          default => $value,
+        });
 
       case \str_contains($name, '-'):
         // Custom attribute
@@ -412,7 +431,7 @@ final readonly class HtmlBuilder
 
   private static function attrNameIsValid(string $name): bool
   {
-    $pattern = '~[' . \preg_quote(implode('', self::INVALID_ATTR_NAME_CHARS), '~') . ']~';
+    $pattern = '~[' . \preg_quote(\implode('', self::INVALID_ATTR_NAME_CHARS), '~') . ']~';
     return \preg_match($pattern, $name) === 0;
   }
 
@@ -421,7 +440,8 @@ final readonly class HtmlBuilder
    */
   private static function parseHtmlTag(string $tag): array
   {
-    if (\preg_match('~^<([\w-]+)(?:\s.+)?>$~', $tag, $matches)) {
+    $matches = [];
+    if (\preg_match('~^<([\\w-]+)(?:\\s.+)?>$~', $tag, $matches)) {
       // HTML tag shorthand provided
       /** @var array{ string, string } $matches */
       $tagOpen = $tag;

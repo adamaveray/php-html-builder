@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Tests;
@@ -8,11 +9,18 @@ use Averay\HtmlBuilder\Tests\Lib\TestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\CoversFunction;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Test;
+use Psr\Http\Message\UriInterface;
 use Symfony\Component\Mime\MimeTypeGuesserInterface;
 use Symfony\Component\Mime\MimeTypes;
 
+/**
+ * @psalm-import-type FullResource from HtmlBuilder
+ *
+ * @internal
+ */
 #[CoversClass(HtmlBuilder::class)]
-#[CoversFunction('Averay\HtmlBuilder\Html\escape')]
+#[CoversFunction('Averay\\HtmlBuilder\\Html\\escape')]
 final class HtmlBuilderTest extends TestCase
 {
   private static function makeHtmlBuilder(?MimeTypeGuesserInterface $mimeTypes = null): HtmlBuilder
@@ -21,8 +29,12 @@ final class HtmlBuilderTest extends TestCase
     return new HtmlBuilder($mimeTypes);
   }
 
+  /**
+   * @param array<array-key, \Stringable|scalar|null> ...$attrs
+   */
+  #[Test]
   #[DataProvider('buildAttrsDataProvider')]
-  public function testBuildAttrs(string $expected, array ...$attrs): void
+  public function buildAttrs(string $expected, array ...$attrs): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
@@ -32,6 +44,9 @@ final class HtmlBuilderTest extends TestCase
     );
   }
 
+  /**
+   * @return iterable<string, non-empty-list<string|array<array-key, \Stringable|scalar|null>>>
+   */
   public static function buildAttrsDataProvider(): iterable
   {
     yield 'Single' => [
@@ -84,6 +99,7 @@ final class HtmlBuilderTest extends TestCase
         'data-float' => 1.234,
         'data-bool' => true,
         'data-stringable' => new class implements \Stringable {
+          #[\Override]
           public function __toString(): string
           {
             return 'value';
@@ -95,7 +111,8 @@ final class HtmlBuilderTest extends TestCase
     yield 'Non-associative attributes' => ['disabled inert', ['disabled', 'inert']];
   }
 
-  public function testBuildAttrsRejectsInvalidAttributeNames(): void
+  #[Test]
+  public function buildAttrsRejectsInvalidAttributeNames(): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     $this->expectException(\InvalidArgumentException::class);
@@ -103,13 +120,20 @@ final class HtmlBuilderTest extends TestCase
     $htmlBuilder->buildAttrs(['hello world']);
   }
 
+  /**
+   * @param array<string, bool> $classes
+   */
+  #[Test]
   #[DataProvider('buildClassesDataProvider')]
-  public function testBuildClasses(string $expected, array $classes): void
+  public function buildClasses(string $expected, array $classes): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals($expected, $htmlBuilder->buildClasses($classes), 'The classes list should be build correctly.');
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, classes: array<string, bool> }>
+   */
   public static function buildClassesDataProvider(): iterable
   {
     yield 'Single' => [
@@ -126,8 +150,9 @@ final class HtmlBuilderTest extends TestCase
     ];
   }
 
+  #[Test]
   #[DataProvider('addClassesDataProvider')]
-  public function testAddClasses(string $expected, string $classList, string ...$additionalClasses): void
+  public function addClasses(string $expected, string $classList, string ...$additionalClasses): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
@@ -137,6 +162,9 @@ final class HtmlBuilderTest extends TestCase
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, classList: string }|list<string>>
+   */
   public static function addClassesDataProvider(): iterable
   {
     yield 'Empty' => [
@@ -154,8 +182,9 @@ final class HtmlBuilderTest extends TestCase
     yield 'Combined' => ['example-class additional-class', 'example-class', 'additional-class'];
   }
 
+  #[Test]
   #[DataProvider('buildStylesheetDataProvider')]
-  public function testBuildStylesheet(
+  public function buildStylesheet(
     string $expected,
     string $url,
     ?string $media = null,
@@ -165,26 +194,33 @@ final class HtmlBuilderTest extends TestCase
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
       $expected,
-      $htmlBuilder->buildStylesheet($url, $media, $integrity, $crossorigin),
+      $htmlBuilder->buildStylesheet(
+        $url,
+        $media,
+        $integrity,
+        // @mago-expect analysis:possibly-invalid-argument -- Using unsupported values for testing.
+        $crossorigin,
+      ),
       'The stylesheet HTML should be built correctly.',
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, url: string, media?: string, integrity?: string, crossorigin?: string }>
+   */
   public static function buildStylesheetDataProvider(): iterable
   {
     yield 'Basic' => [
       'expected' => <<<'HTML'
-      <link rel="stylesheet" href="stylesheet.css"/>
-      HTML
-      ,
+        <link rel="stylesheet" href="stylesheet.css"/>
+        HTML,
       'url' => 'stylesheet.css',
     ];
 
     yield 'With attributes' => [
       'expected' => <<<'HTML'
-      <link rel="stylesheet" href="stylesheet.css" media="example-media" integrity="example-hash" crossorigin="example-crossorigin"/>
-      HTML
-      ,
+        <link rel="stylesheet" href="stylesheet.css" media="example-media" integrity="example-hash" crossorigin="example-crossorigin"/>
+        HTML,
       'url' => 'stylesheet.css',
       'media' => 'example-media',
       'integrity' => 'example-hash',
@@ -193,9 +229,8 @@ final class HtmlBuilderTest extends TestCase
 
     yield 'Safe values' => [
       'expected' => <<<'HTML'
-      <link rel="stylesheet" href="&lt;stylesheet.css&gt;" media="&lt;example-media&gt;" integrity="&lt;example-hash&gt;" crossorigin="&lt;example-crossorigin&gt;"/>
-      HTML
-      ,
+        <link rel="stylesheet" href="&lt;stylesheet.css&gt;" media="&lt;example-media&gt;" integrity="&lt;example-hash&gt;" crossorigin="&lt;example-crossorigin&gt;"/>
+        HTML,
       'url' => '<stylesheet.css>',
       'media' => '<example-media>',
       'integrity' => '<example-hash>',
@@ -203,8 +238,9 @@ final class HtmlBuilderTest extends TestCase
     ];
   }
 
+  #[Test]
   #[DataProvider('buildScriptDataProvider')]
-  public function testBuildScript(
+  public function buildScript(
     string $expected,
     string $url,
     ?string $type = null,
@@ -215,26 +251,35 @@ final class HtmlBuilderTest extends TestCase
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
       $expected,
-      $htmlBuilder->buildScript($url, $type, $async, $integrity, $crossorigin),
+      $htmlBuilder->buildScript(
+        $url,
+        // @mago-expect analysis:possibly-invalid-argument -- Using unsupported values for testing.
+        $type,
+        $async,
+        $integrity,
+        // @mago-expect analysis:possibly-invalid-argument -- Using unsupported values for testing.
+        $crossorigin,
+      ),
       'The script HTML should be built correctly.',
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, url: string, type?: string, async?: bool, integrity?: string, crossorigin?: string }>
+   */
   public static function buildScriptDataProvider(): iterable
   {
     yield 'Basic' => [
       'expected' => <<<'HTML'
-      <script src="script.js"></script>
-      HTML
-      ,
+        <script src="script.js"></script>
+        HTML,
       'url' => 'script.js',
     ];
 
     yield 'With attributes' => [
       'expected' => <<<'HTML'
-      <script src="script.js" type="module" async integrity="example-hash" crossorigin="example-crossorigin"></script>
-      HTML
-      ,
+        <script src="script.js" type="module" async integrity="example-hash" crossorigin="example-crossorigin"></script>
+        HTML,
       'url' => 'script.js',
       'type' => 'module',
       'async' => true,
@@ -244,9 +289,8 @@ final class HtmlBuilderTest extends TestCase
 
     yield 'Safe values' => [
       'expected' => <<<'HTML'
-      <script src="&lt;script.js&gt;" type="&lt;module&gt;" async integrity="&lt;example-hash&gt;" crossorigin="&lt;example-crossorigin&gt;"></script>
-      HTML
-      ,
+        <script src="&lt;script.js&gt;" type="&lt;module&gt;" async integrity="&lt;example-hash&gt;" crossorigin="&lt;example-crossorigin&gt;"></script>
+        HTML,
       'url' => '<script.js>',
       'type' => '<module>',
       'async' => true,
@@ -255,17 +299,26 @@ final class HtmlBuilderTest extends TestCase
     ];
   }
 
+  /**
+   * @param array<string, string|list<string|FullResource>> $preloads
+   * @param list<string> $preconnectHosts
+   */
+  #[Test]
   #[DataProvider('buildPreloadLinksDataProvider')]
-  public function testBuildPreloadLinks(string $expected, array $preloads, array $preconnectHosts = []): void
+  public function buildPreloadLinks(string $expected, array $preloads, array $preconnectHosts = []): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
       $expected,
+      // @mago-expect analysis:possibly-invalid-argument -- Private preload types cannot be declared.
       $htmlBuilder->buildPreloadLinks($preloads, $preconnectHosts),
       'The preload HTML should be built correctly.',
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, preloads: array<string, string|list<string|array{ url: string, integrity?: string, crossorigin?: string }>>, preconnectHosts?: list<string> }>
+   */
   public static function buildPreloadLinksDataProvider(): iterable
   {
     yield 'Empty' => [
@@ -354,20 +407,29 @@ final class HtmlBuilderTest extends TestCase
     ];
   }
 
-  public function testBuildPreloadLinksWithInvalidType(): void
+  #[Test]
+  public function buildPreloadLinksWithInvalidType(): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     $this->expectException(\OutOfBoundsException::class);
+    // @mago-expect analysis:possibly-invalid-argument -- Deliberately passing an invalid preload type.
     $htmlBuilder->buildPreloadLinks(['unknown' => []]);
   }
 
+  /**
+   * @param array<string, string> $entries
+   */
+  #[Test]
   #[DataProvider('buildSrcSetDataProvider')]
-  public function testBuildSrcSet(string $expected, array $entries): void
+  public function buildSrcSet(string $expected, array $entries): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals($expected, $htmlBuilder->buildSrcSet($entries), 'The source set should be built correctly.');
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, entries: array<string, string> }>
+   */
   public static function buildSrcSetDataProvider(): iterable
   {
     yield 'Empty' => [
@@ -409,8 +471,9 @@ final class HtmlBuilderTest extends TestCase
   /**
    * @param 'page'|'step'|'location'|'date'|'time'|true $value
    */
+  #[Test]
   #[DataProvider('buildCurrentPageLinkAttrDataProvider')]
-  public function testBuildCurrentPageLinkAttr(
+  public function buildCurrentPageLinkAttr(
     string $expected,
     string|UriInterface $destinationUrl,
     string|UriInterface $originUrl,
@@ -424,6 +487,9 @@ final class HtmlBuilderTest extends TestCase
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, destinationUrl: string, originUrl: string, value?: 'page'|'step'|'location'|'date'|'time'|true }>
+   */
   public static function buildCurrentPageLinkAttrDataProvider(): iterable
   {
     yield 'Current page' => [
@@ -465,8 +531,9 @@ final class HtmlBuilderTest extends TestCase
     ];
   }
 
+  #[Test]
   #[DataProvider('wrapParagraphsDataProvider')]
-  public function testWrapParagraphs(string $expected, string $string, string $wrappingTag): void
+  public function wrapParagraphs(string $expected, string $string, string $wrappingTag): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
@@ -476,6 +543,9 @@ final class HtmlBuilderTest extends TestCase
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, string: string, wrappingTag: string }>
+   */
   public static function wrapParagraphsDataProvider(): iterable
   {
     yield 'Single paragraph' => [
@@ -487,11 +557,10 @@ final class HtmlBuilderTest extends TestCase
     yield 'Multiple paragraphs' => [
       'expected' => \implode('', ['<p>Hello world.</p>', '<p>Another paragraph.</p>']),
       'string' => <<<'TXT'
-      Hello world.
+        Hello world.
 
-      Another paragraph.
-      TXT
-      ,
+        Another paragraph.
+        TXT,
       'wrappingTag' => '<p>',
     ];
 
@@ -507,16 +576,15 @@ final class HtmlBuilderTest extends TestCase
       'string' => <<<TXT
 
 
-      Hello world.{$spaces}
+        Hello world.{$spaces}
 
 
 
-           Another paragraph.{$spaces}
+             Another paragraph.{$spaces}
 
 
 
-      TXT
-      ,
+        TXT,
       'wrappingTag' => '<p>',
     ];
 
@@ -533,8 +601,9 @@ final class HtmlBuilderTest extends TestCase
     ];
   }
 
+  #[Test]
   #[DataProvider('wrapWordsDataProvider')]
-  public function testWrapWords(string $expected, string $string, string $wrappingTag): void
+  public function wrapWords(string $expected, string $string, string $wrappingTag): void
   {
     $htmlBuilder = self::makeHtmlBuilder();
     self::assertEquals(
@@ -544,6 +613,9 @@ final class HtmlBuilderTest extends TestCase
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, string: string, wrappingTag: string }>
+   */
   public static function wrapWordsDataProvider(): iterable
   {
     yield 'Empty' => [
@@ -554,18 +626,16 @@ final class HtmlBuilderTest extends TestCase
 
     yield 'Words' => [
       'expected' => <<<'HTML'
-      <span>Hello</span> <span>world.</span> <span>This</span> <span>is</span> <span>a</span> <span>test.</span>
-      HTML
-      ,
+        <span>Hello</span> <span>world.</span> <span>This</span> <span>is</span> <span>a</span> <span>test.</span>
+        HTML,
       'string' => 'Hello world. This is a test.',
       'wrappingTag' => '<span>',
     ];
 
     yield 'Custom attributes' => [
       'expected' => <<<'HTML'
-      <span class="test">Hello</span> <span class="test">world.</span>
-      HTML
-      ,
+        <span class="test">Hello</span> <span class="test">world.</span>
+        HTML,
       'string' => 'Hello world.',
       'wrappingTag' => '<span class="test">',
     ];
@@ -574,43 +644,43 @@ final class HtmlBuilderTest extends TestCase
       'expected' => <<<'HTML'
 
 
-      <span>Hello</span>     <span>world.</span>
+        <span>Hello</span>     <span>world.</span>
 
 
-      HTML
-      ,
+        HTML,
       'string' => <<<'TXT'
 
 
-      Hello     world.
+        Hello     world.
 
 
-      TXT
-      ,
+        TXT,
       'wrappingTag' => '<span>',
     ];
 
     yield 'Safe values' => [
       'expected' => <<<'HTML'
-      <span>&lt;Hello</span> <span>world.&gt;</span>
-      HTML
-      ,
+        <span>&lt;Hello</span> <span>world.&gt;</span>
+        HTML,
       'string' => '<Hello world.>',
       'wrappingTag' => '<span>',
     ];
 
     yield 'Shorthand tag name' => [
       'expected' => <<<'HTML'
-      <span>Hello</span> <span>world.</span>
-      HTML
-      ,
+        <span>Hello</span> <span>world.</span>
+        HTML,
       'string' => 'Hello world.',
       'wrappingTag' => 'span',
     ];
   }
 
+  /**
+   * @param array<string, string> $parameters
+   */
+  #[Test]
   #[DataProvider('generateDataUriDataProvider')]
-  public function testGenerateDataUri(
+  public function generateDataUri(
     string $expected,
     string $data,
     ?string $mime = null,
@@ -641,6 +711,9 @@ final class HtmlBuilderTest extends TestCase
     );
   }
 
+  /**
+   * @return iterable<string, array{ expected: string, data: string, mime?: string, parameters?: array<string, string>, inferredMime?: string }>
+   */
   public static function generateDataUriDataProvider(): iterable
   {
     yield 'Preset text' => [
@@ -650,27 +723,32 @@ final class HtmlBuilderTest extends TestCase
     ];
 
     yield 'Preset binary' => [
-      'expected' => 'data:unknown/test;base64,' . base64_encode('Hello world.'),
+      'expected' => 'data:unknown/test;base64,' . \base64_encode('Hello world.'),
       'data' => 'Hello world.',
       'mime' => 'unknown/test',
     ];
 
     yield 'Inferred type' => [
-      'expected' => 'data:foo/bar;base64,' . base64_encode('Hello world.'),
+      'expected' => 'data:foo/bar;base64,' . \base64_encode('Hello world.'),
       'data' => 'Hello world.',
       'inferredMime' => 'foo/bar',
     ];
 
     yield 'Custom parameters' => [
-      'expected' => 'data:unknown/test;foo=bar;base64,' . base64_encode('Hello world.'),
+      'expected' => 'data:unknown/test;foo=bar;base64,' . \base64_encode('Hello world.'),
       'data' => 'Hello world.',
       'mime' => 'unknown/test',
       'parameters' => ['foo' => 'bar'],
     ];
   }
 
+  /**
+   * @param callable(string, string): string $transformer
+   * @param list<string> $additionalAttributes
+   */
+  #[Test]
   #[DataProvider('mapHtmlIdsDataProvider')]
-  public static function testMapHtmlIds(
+  public static function mapHtmlIds(
     string $expected,
     string $html,
     callable $transformer,
@@ -681,93 +759,91 @@ final class HtmlBuilderTest extends TestCase
     self::assertEquals($expected, $result, 'The HTML should be processed correctly.');
   }
 
+  /**
+   * @return iterable<string, array{
+   *   expected: string,
+   *   html: string,
+   *   transformer: callable(string, string): string,
+   *   additionalAttributes?: list<string>,
+   * }>
+   */
   public static function mapHtmlIdsDataProvider(): iterable
   {
     yield 'No IDs' => [
       'expected' => <<<'HTML'
-      <p>Hello world.</p>
-      HTML
-      ,
+        <p>Hello world.</p>
+        HTML,
       'html' => <<<'HTML'
-      <p>Hello world.</p>
-      HTML
-      ,
-      'transformer' => static fn(string $value): never => self::fail('The transformer should not be called.'),
+        <p>Hello world.</p>
+        HTML,
+      'transformer' => static fn(string $_): never => self::fail('The transformer should not be called.'),
     ];
 
     yield 'No transformation' => [
       'expected' => <<<'HTML'
-      <p id="test">Hello world.</p>
-      HTML
-      ,
+        <p id="test">Hello world.</p>
+        HTML,
       'html' => <<<'HTML'
-      <p id="test">Hello world.</p>
-      HTML
-      ,
+        <p id="test">Hello world.</p>
+        HTML,
       'transformer' => static fn(string $value): string => $value,
     ];
 
     yield 'Transformation' => [
       'expected' => <<<'HTML'
-      <p id="new-test-value">Hello world.</p>
-      HTML
-      ,
+        <p id="new-test-value">Hello world.</p>
+        HTML,
       'html' => <<<'HTML'
-      <p id="test">Hello world.</p>
-      HTML
-      ,
+        <p id="test">Hello world.</p>
+        HTML,
       'transformer' => static fn(string $value): string => 'new-' . $value . '-value',
     ];
 
     yield 'Multiple attributes' => [
       'expected' => <<<'HTML'
-      <div aria-labelledby="new-test-title-value" class="test-class">
-        <h1 id="new-test-title-value" hidden>Test title</h1>
-        <figure inert onclick="console.log('click');" aria-describedby="new-test-caption-value">
-          Test figure.
-        </figure>
-        <figcaption id="new-test-caption-value">Test caption.</figcaption>
-        <button data-target="test-title">Test button.</button>
-      </div>
-      HTML
-      ,
+        <div aria-labelledby="new-test-title-value" class="test-class">
+          <h1 id="new-test-title-value" hidden>Test title</h1>
+          <figure inert onclick="console.log('click');" aria-describedby="new-test-caption-value">
+            Test figure.
+          </figure>
+          <figcaption id="new-test-caption-value">Test caption.</figcaption>
+          <button data-target="test-title">Test button.</button>
+        </div>
+        HTML,
       'html' => <<<'HTML'
-      <div aria-labelledby="test-title" class="test-class">
-        <h1 id="test-title" hidden>Test title</h1>
-        <figure inert onclick="console.log('click');" aria-describedby="test-caption">
-          Test figure.
-        </figure>
-        <figcaption id="test-caption">Test caption.</figcaption>
-        <button data-target="test-title">Test button.</button>
-      </div>
-      HTML
-      ,
+        <div aria-labelledby="test-title" class="test-class">
+          <h1 id="test-title" hidden>Test title</h1>
+          <figure inert onclick="console.log('click');" aria-describedby="test-caption">
+            Test figure.
+          </figure>
+          <figcaption id="test-caption">Test caption.</figcaption>
+          <button data-target="test-title">Test button.</button>
+        </div>
+        HTML,
       'transformer' => static fn(string $value): string => 'new-' . $value . '-value',
     ];
 
     yield 'Custom attributes' => [
       'expected' => <<<'HTML'
-      <div aria-labelledby="new-test-title-value">
-        <h1 id="new-test-title-value">Test title</h1>
-        <figure aria-describedby="new-test-caption-value">
-          Test figure.
-        </figure>
-        <figcaption id="new-test-caption-value">Test caption.</figcaption>
-        <button data-target="new-test-title-value">Test button.</button>
-      </div>
-      HTML
-      ,
+        <div aria-labelledby="new-test-title-value">
+          <h1 id="new-test-title-value">Test title</h1>
+          <figure aria-describedby="new-test-caption-value">
+            Test figure.
+          </figure>
+          <figcaption id="new-test-caption-value">Test caption.</figcaption>
+          <button data-target="new-test-title-value">Test button.</button>
+        </div>
+        HTML,
       'html' => <<<'HTML'
-      <div aria-labelledby="test-title">
-        <h1 id="test-title">Test title</h1>
-        <figure aria-describedby="test-caption">
-          Test figure.
-        </figure>
-        <figcaption id="test-caption">Test caption.</figcaption>
-        <button data-target="test-title">Test button.</button>
-      </div>
-      HTML
-      ,
+        <div aria-labelledby="test-title">
+          <h1 id="test-title">Test title</h1>
+          <figure aria-describedby="test-caption">
+            Test figure.
+          </figure>
+          <figcaption id="test-caption">Test caption.</figcaption>
+          <button data-target="test-title">Test button.</button>
+        </div>
+        HTML,
       'transformer' => static fn(string $value): string => 'new-' . $value . '-value',
       'additionalAttributes' => ['data-target'],
     ];

@@ -1,10 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Html;
 
 /**
  * @param string $value An unescaped value.
+ *
  * @return string The safe representation of `$value` for use in a HTML document.
  */
 function escape(string $value): string
@@ -14,6 +16,7 @@ function escape(string $value): string
 
 /**
  * @param string $value An escaped HTML string.
+ *
  * @return string The raw representation of `$value`.
  */
 function unescape(string $value): string
@@ -23,13 +26,10 @@ function unescape(string $value): string
 
 /**
  * @param mixed $value A PHP value.
+ *
  * @return string The safe JavaScript representation of `$value` for use in an inline JavaScript script within a HTML document.
  */
 function escapeJsValue(mixed $value, int $flags = \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE): string
 {
-  $json = \json_encode($value, \JSON_THROW_ON_ERROR | \JSON_HEX_TAG | $flags);
-  if ($json === false) {
-    throw new \RuntimeException('Failed converting JSON: ' . \json_last_error_msg());
-  }
-  return $json;
+  return \json_encode($value, \JSON_THROW_ON_ERROR | \JSON_HEX_TAG | $flags);
 }

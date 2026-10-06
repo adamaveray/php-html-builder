@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Css;
@@ -15,7 +16,6 @@ final readonly class CssBuilder
 
   /**
    * @param string|list<string> $values A value for the property. A list will output the property multiple times to provide fallback values.
-   * @return string
    */
   public function buildProperty(string $name, string|array $values): string
   {
@@ -31,8 +31,7 @@ final readonly class CssBuilder
   }
 
   /**
-   * @param array<string, string | list<string>> $properties An associative array with keys representing CSS property names. List values will output the same property multiple times to provide fallback values.
-   * @return string
+   * @param array<string, string|list<string>> $properties An associative array with keys representing CSS property names. List values will output the same property multiple times to provide fallback values.
    */
   public function buildProperties(array $properties): string
   {
@@ -54,9 +53,10 @@ final readonly class CssBuilder
       $formattedEntries = self::buildImageSetDensityEntries($entries, $format);
     } elseif ($entries instanceof HasMediaFormats) {
       if ($format !== null) {
-        throw new \BadMethodCallException(
-          \sprintf('An image format cannot be specified with a %s instance.', HasMediaFormats::class),
-        );
+        throw new \BadMethodCallException(\sprintf(
+          'An image format cannot be specified with a %s instance.',
+          HasMediaFormats::class,
+        ));
       }
       $formattedEntries = self::buildImageSetFormatsEntries($entries);
     } else {
@@ -69,7 +69,7 @@ final readonly class CssBuilder
         $formattedEntries[] = self::buildImageSetEntry($url, resolution: $size, format: null);
       }
     }
-    if (empty($formattedEntries)) {
+    if ($formattedEntries === []) {
       throw new \InvalidArgumentException('At least one entry must be provided.');
     }
     return 'image-set(' . \implode(', ', $formattedEntries) . ')';
@@ -80,10 +80,6 @@ final readonly class CssBuilder
    */
   private static function buildImageSetDensityEntries(HasMediaDensities $media, ?string $selectedFormat): array
   {
-    /**
-     * @psalm-suppress InvalidArgument https://github.com/vimeo/psalm/issues/11007
-     * @var array<array-key, string> $formats
-     */
     $formats = $selectedFormat === null ? \iterator_to_array($media->getImageFormats()) : [$selectedFormat];
 
     $withFormats = \count($formats) > 1;
@@ -93,7 +89,7 @@ final readonly class CssBuilder
       foreach ($media->getDensitiesForFormat($format) as ['density' => $density, 'url' => $url]) {
         $formattedEntries[] = self::buildImageSetEntry(
           $url,
-          resolution: ((string) $density) . 'x',
+          resolution: (string) $density . 'x',
           format: $withFormats ? $format : null,
         );
       }

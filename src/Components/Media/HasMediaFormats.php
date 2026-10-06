@@ -1,8 +1,12 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Components\Media;
 
+/**
+ * @api
+ */
 interface HasMediaFormats
 {
   /**
@@ -12,6 +16,7 @@ interface HasMediaFormats
 
   /**
    * @param string $format One of the MIME types provided by `getImageFormats()`.
+   *
    * @return string The URL for the given format.
    */
   public function getUrlForFormat(string $format): string;
