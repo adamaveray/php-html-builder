@@ -8,56 +8,36 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
 
     strategy:
       matrix:
-        php-version: [8.4]
-
-    env:
-      NODE_ENV: development
+        php-version: [8.5]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - name: Use Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Use Vite+
+        uses: voidzero-dev/setup-vp@v1
+        with:
+          cache: true
 
       - name: Use PHP ${{ matrix.php-version }}
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
+          extensions: intl, mbstring, simplexml
         env: { fail-fast: true }
 
-      - name: Cache NPM packages
-        uses: actions/cache@v4
-        env: { cache-name: npm }
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('bun.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-lint-${{ env.cache-name }}-
-            ${{ runner.os }}-lint-
-            ${{ runner.os }}-
-
-      - name: Cache Composer packages
-        uses: actions/cache@v3
-        env: { cache-name: composer }
-        with:
-          path: vendor
-          key: ${{ runner.os }}-${{ env.cache-name }}-${{ hashFiles('composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-lint-${{ env.cache-name }}-
-            ${{ runner.os }}-lint-
-            ${{ runner.os }}-
-
-      - name: Install NPM dependencies
-        run: bun install --frozen-lockfile
-
       - name: Install Composer dependencies
-        run: composer install --ignore-platform-reqs
+        uses: ramsey/composer-install@v4
 
       - name: Lint code
-        run: composer run-script lint
+        run: vp run lint

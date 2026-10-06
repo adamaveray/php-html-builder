@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+PATH="$PATH:/usr/local/bin" # Support local Composer installations
+vp run lint
+vp run test

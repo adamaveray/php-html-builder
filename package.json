@@ -2,12 +2,23 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "prepare": "husky"
+    "format": "vp exec codeformat fix",
+    "lint": "vp run lint:codeformat && vp run lint:composer",
+    "lint:codeformat": "vp exec codeformat check",
+    "lint:composer": "composer validate --strict",
+    "test": "php ./vendor/bin/phpunit",
+    "prepare": "vp config"
   },
   "devDependencies": {
-    "@prettier/plugin-php": "^0.25.0",
-    "@prettier/plugin-xml": "^3.4.2",
-    "husky": "^9.1.7",
-    "prettier": "^3.8.3"
+    "@averay/codeformat": "^0.4.5",
+    "vite": "catalog:",
+    "vite-plus": "catalog:"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.9.1",
+      "onFail": "download"
+    }
   }
 }

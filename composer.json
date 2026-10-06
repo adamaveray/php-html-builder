@@ -23,15 +23,10 @@
   "autoload-dev": {
     "psr-4": {
       "Averay\\HtmlBuilder\\Tests\\": "tests/"
-    }
-  },
-  "scripts": {
-    "format": "composer run-script format:prettier",
-    "format:prettier": "bun --bun x prettier --write '**/*.{php,md,json,xml,yml}'",
-    "lint": "composer run-script lint:prettier && composer run-script lint:psalm",
-    "lint:prettier": "bun --bun x prettier --check '**/*.{php,md,json,xml,yml}'",
-    "lint:psalm": "vendor/bin/psalm --no-cache",
-    "test": "php ./vendor/bin/phpunit"
+    },
+    "files": [
+      "node_modules/@averay/codeformat/autoload.php"
+    ]
   },
   "require": {
     "php": ">=8.5",
@@ -40,8 +35,9 @@
     "symfony/mime": "^8.0"
   },
   "require-dev": {
+    "carthage-software/mago": "^1.51",
+    "friendsofphp/php-cs-fixer": "^3.95",
     "phpunit/phpunit": "^13.1",
-    "roave/security-advisories": "dev-latest",
-    "vimeo/psalm": "^6.16"
+    "roave/security-advisories": "dev-latest"
   }
 }
