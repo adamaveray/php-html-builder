@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace Averay\HtmlBuilder\Html;
 
 use League\Uri\BaseUri;
+use League\Uri\Contracts\UriException;
 use Psr\Http\Message\UriInterface;
 use Symfony\Component\Mime\MimeTypeGuesserInterface;
 
@@ -235,7 +236,7 @@ final readonly class HtmlBuilder
    * @param string|UriInterface $destinationUrl A URL that will be used in an anchor element's `href` attribute.
    * @param string|UriInterface $originUrl The URL for the page the anchor will appear in.
    * @param 'page'|'step'|'location'|'date'|'time'|true $value The ARIA value for the referenced item.
-   * @return string Appropriate HTML attributes for the destination URL if it matches the page URL, or an empty string if it is to a different location.
+   * @return string Appropriate HTML attributes for the destination URL if it matches the page URL, or an empty string if it is to a different location or either URL is invalid.
    *
    * @see BaseUri::isSameDocument The logic for determining whether the destination URL is the same as the origin URL.
    * @see https://developer.mozilla.org/en-US/docs/Web/Accessibility/ARIA/Reference/Attributes/aria-current The generated ARIA attribute and possible values for $value.
@@ -248,9 +249,15 @@ final readonly class HtmlBuilder
     if ($value === true) {
       $value = 'true';
     }
-    return BaseUri::from($originUrl)->isSameDocument($destinationUrl)
-      ? \sprintf('aria-current="%s"', escape($value))
-      : '';
+
+    try {
+      $isSameDocument = BaseUri::from($originUrl)->isSameDocument($destinationUrl);
+    } catch (UriException) {
+      // Assume invalid/untrustworthy URLs are not the same document
+      return '';
+    }
+
+    return $isSameDocument ? \sprintf('aria-current="%s"', escape($value)) : '';
   }
 
   /**

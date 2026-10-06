@@ -451,6 +451,18 @@ final class HtmlBuilderTest extends TestCase
       'originUrl' => '/',
       'value' => true,
     ];
+
+    yield 'Invalid origin URL' => [
+      'expected' => '',
+      'destinationUrl' => '/',
+      'originUrl' => '/.//.env',
+    ];
+
+    yield 'Invalid destination URL' => [
+      'expected' => '',
+      'destinationUrl' => '/.//.env',
+      'originUrl' => '/',
+    ];
   }
 
   #[DataProvider('wrapParagraphsDataProvider')]

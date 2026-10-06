@@ -66,8 +66,8 @@ final class LibsTest extends TestCase
       \JSON_PRETTY_PRINT,
     ];
 
-    yield 'Unsafe string' => ['"\u003CHello world.\u003E"', '<Hello world.>'];
-    yield 'Closing script tag' => ['"\u003C/script\u003E"', '</script>', \JSON_UNESCAPED_SLASHES];
+    yield 'Unsafe string' => ['"\\u003CHello world.\\u003E"', '<Hello world.>'];
+    yield 'Closing script tag' => ['"\\u003C/script\\u003E"', '</script>', \JSON_UNESCAPED_SLASHES];
   }
 
   #[DataProvider('cssEscapeStringDataProvider')]
