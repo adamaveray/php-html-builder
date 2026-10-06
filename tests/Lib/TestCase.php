@@ -48,4 +48,31 @@ abstract class TestCase extends \PHPUnit\Framework\TestCase
     $value = $convert($value);
     self::assertEquals($expected, $value, $message);
   }
+
+  /**
+   * @param callable():void $fn
+   * @param (callable(\Throwable $exception):bool)|null $test
+   * @param (callable(\Throwable|null $previous):bool)|null $testPrevious
+   */
+  final protected static function assertThrows(
+    callable $fn,
+    ?callable $test = null,
+    ?callable $testPrevious = null,
+    string $message = '',
+  ): void {
+    try {
+      $fn();
+    } catch (\Throwable $exception) {
+      if ($test === null) {
+        self::assertInstanceOf(\Throwable::class, $exception, $message);
+      } else {
+        self::assertTrue($test($exception), $message);
+      }
+      if ($testPrevious !== null) {
+        self::assertTrue($testPrevious($exception->getPrevious()), $message);
+      }
+      return;
+    }
+    self::fail($message);
+  }
 }
