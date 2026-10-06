@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Averay\HtmlBuilder\Html;
 
+use Averay\HtmlBuilder\Html\Attributes\AttributesConfig;
+use Averay\HtmlBuilder\Html\Attributes\HtmlAttributes;
 use League\Uri\BaseUri;
 use League\Uri\Contracts\UriException;
 use Psr\Http\Message\UriInterface;
@@ -18,24 +20,6 @@ use Symfony\Component\Mime\MimeTypeGuesserInterface;
  */
 final readonly class HtmlBuilder
 {
-  /**
-   * @see https://www.w3.org/TR/2011/WD-html5-20110525/syntax.html#attributes-0
-   */
-  private const array INVALID_ATTR_NAME_CHARS = [
-    "\u{0020}", // SPACE
-    "\u{0009}", // CHARACTER TABULATION (tab)
-    "\u{000A}", // LINE FEED (LF)
-    "\u{000C}", // FORM FEED (FF)
-    "\u{000D}", // CARRIAGE RETURN (CR)
-    "\u{0000}", // NULL
-    "\u{0022}", // QUOTATION MARK (")
-    "\u{0027}", // APOSTROPHE (')
-    "\u{003E}", // GREATER-THAN SIGN (>)
-    "\u{002F}", // SOLIDUS (/)
-    "\u{003D}", // EQUALS SIGN (=)
-    "\u{003C}", // LESS-THAN SIGN (<) (Technically allowed but causes issues with some parsers.)
-  ];
-
   private const array PRELOAD_TYPES = [
     'audio',
     'document',
@@ -56,62 +40,25 @@ final readonly class HtmlBuilder
    */
   private const array ID_ATTRIBUTES = ['id', 'for', 'aria-labelledby', 'aria-describedby'];
 
+  private AttributesConfig $attributesConfig;
+
   public function __construct(
     private MimeTypeGuesserInterface $mimeTypesGuesser,
-  ) {}
+    ?AttributesConfig $attributesConfig = null,
+  ) {
+    $this->attributesConfig = $attributesConfig ?? AttributesConfig::createDefault();
+  }
 
   /**
    * Formats a collection of attributes for HTML.
    *
-   * - For standard attributes, `null` or `false` will omit the attribute, while `true` will output only the attribute name.
-   * - For ARIA attributes, booleans will be converted to their required textual representations.
-   * - Other attributes will be directly converted to strings.
-   *
-   * Multiple attribute arrays can be provided which will be merged, with duplicate values intelligently merged (either combined or overwritten depending on the attribute).
-   *
-   * For simple attributes the attribute name alone can be specified without a corresponding value, i.e. `["attribute-name"]` is equivalent to `["attribute-name" => true]`.
-   *
-   * @param array<array-key, \Stringable|scalar|null> ...$attrs
+   * @param array<string, mixed> ...$attributes
    *
    * @return string Formatted HTML attributes safe for use in a HTML document.
    */
-  public function buildAttrs(array ...$attrs): string
+  public function buildAttrs(array ...$attributes): string
   {
-    /** @var array<array-key, \Stringable|scalar|null> $mergedAttrs */
-    $mergedAttrs = [];
-    foreach ($attrs as $attrSet) {
-      foreach ($attrSet as $name => $value) {
-        if (!isset($mergedAttrs[$name])) {
-          $mergedAttrs[$name] = $value;
-          continue;
-        }
-
-        $currentValue = $mergedAttrs[$name];
-        $mergedAttrs[$name] = match (true) {
-          $name === 'class' => $this->addClasses((string) $currentValue, (string) $value),
-          default => $value,
-        };
-      }
-    }
-
-    $pairs = [];
-    foreach ($mergedAttrs as $name => $value) {
-      if (\is_int($name)) {
-        // Value-less - assume boolean
-        $name = (string) $value;
-        $value = true;
-      }
-
-      if (!self::attrNameIsValid($name)) {
-        throw new \InvalidArgumentException(\sprintf('Invalid attribute name: %s', $name));
-      }
-
-      $formattedValue = $this->formatAttr($name, $value);
-      if ($formattedValue !== null) {
-        $pairs[] = $formattedValue;
-      }
-    }
-    return \implode(' ', $pairs);
+    return (string) HtmlAttributes::createFromSets(\array_values($attributes), $this->attributesConfig);
   }
 
   /**
@@ -166,7 +113,7 @@ final readonly class HtmlBuilder
       'integrity' => $integrity,
       'crossorigin' => $crossorigin,
     ];
-    return '<link ' . $this->buildAttrs($attrs) . '/>';
+    return '<link' . $this->buildAttrs($attrs) . '/>';
   }
 
   /**
@@ -192,7 +139,7 @@ final readonly class HtmlBuilder
       'integrity' => $integrity,
       'crossorigin' => $crossorigin,
     ];
-    return '<script ' . $this->buildAttrs($attrs) . '></script>';
+    return '<script' . $this->buildAttrs($attrs) . '></script>';
   }
 
   /**
@@ -214,7 +161,7 @@ final readonly class HtmlBuilder
           $entry = ['url' => $entry];
         }
         $html .=
-          '<link '
+          '<link'
           . $this->buildAttrs([
             'rel' => 'preload',
             'href' => $entry['url'],
@@ -226,7 +173,7 @@ final readonly class HtmlBuilder
       }
     }
     foreach ($preconnectHosts as $preconnectHost) {
-      $html .= '<link ' . $this->buildAttrs(['rel' => 'preconnect', 'href' => $preconnectHost]) . '/>';
+      $html .= '<link' . $this->buildAttrs(['rel' => 'preconnect', 'href' => $preconnectHost]) . '/>';
     }
     return $html;
   }
@@ -393,46 +340,6 @@ final readonly class HtmlBuilder
         \error_log(\sprintf('Failed unlinking temporary MIME type inference file "%s".', $temporaryPath));
       }
     }
-  }
-
-  /**
-   * @param scalar|\Stringable|null $value
-   */
-  private function formatAttr(string $name, mixed $value): ?string
-  {
-    $withName = static fn(mixed $value): string => \sprintf('%s="%s"', $name, escape((string) $value));
-
-    switch (true) {
-      case \str_starts_with($name, 'aria-'):
-        // ARIA attribute
-        return $withName(match ($value) {
-          true => 'true',
-          false => 'false',
-          default => $value,
-        });
-
-      case \str_contains($name, '-'):
-        // Custom attribute
-        return $withName($value);
-
-      default:
-        // Standard attribute
-        if ($value === false || $value === null) {
-          // Disabled
-          return null;
-        }
-        if ($value === true) {
-          // Name only
-          return $name;
-        }
-        return $withName($value);
-    }
-  }
-
-  private static function attrNameIsValid(string $name): bool
-  {
-    $pattern = '~[' . \preg_quote(\implode('', self::INVALID_ATTR_NAME_CHARS), '~') . ']~';
-    return \preg_match($pattern, $name) === 0;
   }
 
   /**

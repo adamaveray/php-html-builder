@@ -37,6 +37,7 @@
     "carthage-software/mago": "^1.51",
     "friendsofphp/php-cs-fixer": "^3.95",
     "phpunit/phpunit": "^13.3",
-    "roave/security-advisories": "dev-latest"
+    "roave/security-advisories": "dev-latest",
+    "twig/html-extra": "^3.29"
   }
 }

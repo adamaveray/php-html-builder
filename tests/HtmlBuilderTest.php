@@ -30,7 +30,7 @@ final class HtmlBuilderTest extends TestCase
   }
 
   /**
-   * @param array<array-key, \Stringable|scalar|null> ...$attrs
+   * @param array<string, mixed> ...$attrs
    */
   #[Test]
   #[DataProvider('buildAttrsDataProvider')]
@@ -45,19 +45,21 @@ final class HtmlBuilderTest extends TestCase
   }
 
   /**
-   * @return iterable<string, non-empty-list<string|array<array-key, \Stringable|scalar|null>>>
+   * @return iterable<string, non-empty-list<string|array<string, mixed>>>
    */
   public static function buildAttrsDataProvider(): iterable
   {
+    yield 'None' => [''];
+
     yield 'Single' => [
-      'hello="world"',
+      ' hello="world"',
       [
         'hello' => 'world',
       ],
     ];
 
     yield 'Multiple values' => [
-      'hello="world" foo="bar"',
+      ' hello="world" foo="bar"',
       [
         'hello' => 'world',
         'foo' => 'bar',
@@ -65,7 +67,7 @@ final class HtmlBuilderTest extends TestCase
     ];
 
     yield 'Multiple sets' => [
-      'hello="overwritten" foo="bar"',
+      ' hello="overwritten" foo="bar"',
       [
         'hello' => 'world',
         'foo' => 'bar',
@@ -75,8 +77,28 @@ final class HtmlBuilderTest extends TestCase
       ],
     ];
 
+    yield 'Class strings replaced' => [
+      ' class="b"',
+      [
+        'class' => 'a',
+      ],
+      [
+        'class' => 'b',
+      ],
+    ];
+
+    yield 'Class lists joined' => [
+      ' class="a b"',
+      [
+        'class' => ['a'],
+      ],
+      [
+        'class' => ['b'],
+      ],
+    ];
+
     yield 'Standard booleans' => [
-      'hidden',
+      ' hidden=""',
       [
         'hidden' => true,
         'disabled' => false,
@@ -85,7 +107,7 @@ final class HtmlBuilderTest extends TestCase
     ];
 
     yield 'ARIA booleans' => [
-      'aria-hidden="true" aria-disabled="false"',
+      ' aria-hidden="true" aria-disabled="false"',
       [
         'aria-hidden' => true,
         'aria-disabled' => false,
@@ -93,7 +115,7 @@ final class HtmlBuilderTest extends TestCase
     ];
 
     yield 'Other data types' => [
-      'data-int="1" data-float="1.234" data-bool="1" data-stringable="value"',
+      ' data-int="1" data-float="1.234" data-bool="true" data-stringable="value"',
       [
         'data-int' => 1,
         'data-float' => 1.234,
@@ -107,8 +129,6 @@ final class HtmlBuilderTest extends TestCase
         },
       ],
     ];
-
-    yield 'Non-associative attributes' => ['disabled inert', ['disabled', 'inert']];
   }
 
   #[Test]
@@ -117,7 +137,7 @@ final class HtmlBuilderTest extends TestCase
     $htmlBuilder = self::makeHtmlBuilder();
     $this->expectException(\InvalidArgumentException::class);
     $this->expectExceptionMessageMatches('~^Invalid attribute name~');
-    $htmlBuilder->buildAttrs(['hello world']);
+    $htmlBuilder->buildAttrs(['hello world' => true]);
   }
 
   /**
@@ -278,7 +298,7 @@ final class HtmlBuilderTest extends TestCase
 
     yield 'With attributes' => [
       'expected' => <<<'HTML'
-        <script src="script.js" type="module" async integrity="example-hash" crossorigin="example-crossorigin"></script>
+        <script src="script.js" type="module" async="" integrity="example-hash" crossorigin="example-crossorigin"></script>
         HTML,
       'url' => 'script.js',
       'type' => 'module',
@@ -289,7 +309,7 @@ final class HtmlBuilderTest extends TestCase
 
     yield 'Safe values' => [
       'expected' => <<<'HTML'
-        <script src="&lt;script.js&gt;" type="&lt;module&gt;" async integrity="&lt;example-hash&gt;" crossorigin="&lt;example-crossorigin&gt;"></script>
+        <script src="&lt;script.js&gt;" type="&lt;module&gt;" async="" integrity="&lt;example-hash&gt;" crossorigin="&lt;example-crossorigin&gt;"></script>
         HTML,
       'url' => '<script.js>',
       'type' => '<module>',

@@ -12,18 +12,11 @@ ambiguous-function-call = { enabled = false }
 
 [guard.perimeter.layers]
 dependencies = ["League\\Uri\\**", "Psr\\Http\\Message\\**", "Symfony\\Component\\Mime\\**"]
+"optional-integrations:twig" = ["Twig\\Extra\\Html\\**"]
 
 [[guard.perimeter.rules]]
 namespace = "@global"
 permit = ["@all"]
-
-[[guard.structural.rules]]
-on = "Averay\\HtmlBuilder\\**"
-not-on = "Averay\\HtmlBuilder\\Tests\\**"
-target = "class"
-must-be-final = true
-must-be-readonly = true
-reason = "Builders are stateless and should not be extended."
 
 # Components
 [[guard.perimeter.rules]]
@@ -40,9 +33,42 @@ reason = "Components defines contracts for consumers to implement."
 namespace = "Averay\\HtmlBuilder\\Css\\"
 permit = ["@native", "@layer:dependencies", "Averay\\HtmlBuilder\\Css\\**", "Averay\\HtmlBuilder\\Components\\**"]
 
+[[guard.structural.rules]]
+on = "Averay\\HtmlBuilder\\Css\\**"
+target = "class"
+must-be-final = true
+must-be-readonly = true
+reason = "Builders are stateless and should not be extended."
+
 [[guard.perimeter.rules]]
 namespace = "Averay\\HtmlBuilder\\Html\\"
-permit = ["@native", "@layer:dependencies", "Averay\\HtmlBuilder\\Html\\**", "Averay\\HtmlBuilder\\Components\\**"]
+permit = [
+  "@native",
+  "@layer:dependencies",
+  "@layer:optional-integrations:twig",
+  "Averay\\HtmlBuilder\\Html\\**",
+  "Averay\\HtmlBuilder\\Components\\**",
+  "Averay\\HtmlBuilder\\Exceptions\\**",
+]
+
+[[guard.structural.rules]]
+on = "Averay\\HtmlBuilder\\Html\\**"
+target = "class"
+must-be-final = true
+must-be-readonly = true
+reason = "Builders are stateless and should not be extended."
+
+# Exceptions
+[[guard.perimeter.rules]]
+namespace = "Averay\\HtmlBuilder\\Exceptions\\"
+permit = ["@native"]
+
+[[guard.structural.rules]]
+on = "Averay\\HtmlBuilder\\Exceptions\\**"
+target = "class"
+must-be-final = true
+must-be-readonly = false # Base PHP exceptions are not readonly
+reason = "Exceptions should not be extended."
 
 # Tests
 [[guard.perimeter.rules]]
