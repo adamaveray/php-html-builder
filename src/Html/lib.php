@@ -27,9 +27,9 @@ function unescape(string $value): string
  */
 function escapeJsValue(mixed $value, int $flags = \JSON_UNESCAPED_SLASHES | \JSON_UNESCAPED_UNICODE): string
 {
-  $json = \json_encode($value, \JSON_THROW_ON_ERROR | $flags);
+  $json = \json_encode($value, \JSON_THROW_ON_ERROR | \JSON_HEX_TAG | $flags);
   if ($json === false) {
     throw new \RuntimeException('Failed converting JSON: ' . \json_last_error_msg());
   }
-  return \str_replace(['<', '>'], ['&lt;', '&gt;'], $json);
+  return $json;
 }
