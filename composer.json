@@ -3,7 +3,11 @@
   "type": "library",
   "description": "Utilities for building HTML.",
   "license": "MIT",
-  "homepage": "https://github.com/adamaveray/php-html-builder",
+  "homepage": "https://codeberg.org/adamaveray/php-html-builder",
+  "support": {
+    "issues": "https://codeberg.org/adamaveray/php-html-builder/issues",
+    "source": "https://codeberg.org/adamaveray/php-html-builder"
+  },
   "authors": [
     {
       "name": "Adam Averay",
