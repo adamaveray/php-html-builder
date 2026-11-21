@@ -1,5 +1,5 @@
 ---
-name: Lint
+name: Test
 
 on:
   - push
@@ -13,31 +13,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
+  test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
     strategy:
       matrix:
         php-version: [8.5]
+        dependency-versions: [lowest, highest]
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Use Vite+
-        uses: voidzero-dev/setup-vp@v1
+        uses: https://github.com/voidzero-dev/setup-vp@v1
         with:
           cache: true
 
       - name: Use PHP ${{ matrix.php-version }}
-        uses: shivammathur/setup-php@v2
+        uses: https://github.com/shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
           extensions: intl, mbstring, simplexml
         env: { fail-fast: true }
 
       - name: Install Composer dependencies
-        uses: ramsey/composer-install@v4
+        uses: https://github.com/ramsey/composer-install@v4
+        with:
+          dependency-versions: ${{ matrix.dependency-versions }}
 
-      - name: Lint code
-        run: vp run lint
+      - name: Test code
+        run: vendor/bin/phpunit
